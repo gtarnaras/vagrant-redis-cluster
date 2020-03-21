@@ -1,0 +1,17 @@
+---
+######### Options ##########
+
+redisbasevm1ip_address: 192.168.3.101
+redisbasevm1_name: redisbasevm1
+redisbasevm1_master_port: 6379
+redisbasevm1_slave_port: 6381
+
+redisbasevm2ip_address: 192.168.3.102
+redisbasevm2_name: redisbasevm2
+redisbasevm2_master_port: 6380
+redisbasevm2_slave_port: 6379
+
+redisbasevm3ip_address: 192.168.3.103
+redisbasevm3_name: redisbasevm3
+redisbasevm3_master_port: 6381
+redisbasevm3_slave_port: 6380

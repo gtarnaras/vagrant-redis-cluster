@@ -1,0 +1,20 @@
+---
+# ###################################################################
+#
+# This playbook contains common handlers/hooks that can be called in 
+# various environment setup tasks.
+#
+# ###################################################################
+
+# Check redis-cluster replication info
+- name: REDIS | Check replication
+  become: yes
+  shell: redis-cli -c \
+         -h {{ item.master_name }} \
+         -p {{ item.master_port }} \
+          INFO REPLICATION
+  loop:
+    - { master_name: "{{ redisbasevm1ip_address }}", master_port: "{{ redisbasevm1_master_port }}" }
+    - { master_name: "{{ redisbasevm2ip_address }}", master_port: "{{ redisbasevm2_master_port }}" }
+    - { master_name: "{{ redisbasevm3ip_address }}", master_port: "{{ redisbasevm3_master_port }}" }
+

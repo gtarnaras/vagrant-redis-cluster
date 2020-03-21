@@ -1,0 +1,101 @@
+---
+# ###################################################################
+#
+# This playbook contains the redis cluster installation steps
+#
+# ###################################################################
+
+# Check that redis services are up and running. We should
+# find 2 running processes (master, slave)
+- name: REDIS | Check redis running processes
+  become: yes
+  shell: supervisorctl status | grep RUNNING | wc -l
+  register: redis_running
+  failed_when: redis_running.stdout != "2"
+
+# Check if cluster already running by checking cluster_state 
+- name: REDIS | Check redis cluster status
+  become: yes
+  shell: redis-cli \
+        -h {{ redisbasevm1ip_address }} \
+        -p {{ redisbasevm1_master_port }} \
+        CLUSTER INFO | grep cluster_state | grep ok | wc -l
+  register: redis_cluster_running
+  when: redis_running.stdout == "2"
+
+# Setup cluster master nodes
+- name: REDIS | Setup the cluster masters
+  become: yes
+  expect:
+    command: /usr/bin/ruby /usr/local/bin/redis-trib.rb 
+             create 
+             {{ redisbasevm1ip_address }}:{{ redisbasevm1_master_port }} 
+             {{ redisbasevm2ip_address }}:{{ redisbasevm2_master_port }} 
+             {{ redisbasevm3ip_address }}:{{ redisbasevm3_master_port }}
+    responses:
+      (.*)Can I set the above configuration(.*): "yes"
+  when: redis_cluster_running.stdout == "0"
+
+# Get cluster master ids
+# TODO create a loop to get those values
+- name: SETUP | Check redis server process one
+  become: yes
+  shell: redis-cli \
+         -h {{ redisbasevm1ip_address }} \
+         -p {{ redisbasevm1_master_port }} \
+          CLUSTER NODES | grep {{ redisbasevm1ip_address }} | cut -d" " -f 1
+  register: redis_master_one
+
+- name: SETUP | Check redis server process two
+  become: yes
+  shell: redis-cli \
+        -h {{ redisbasevm2ip_address }} \
+        -p {{ redisbasevm2_master_port }} \
+        CLUSTER NODES | grep {{ redisbasevm2ip_address }} | cut -d" " -f 1
+  register: redis_master_two 
+
+- name: SETUP | Check redis server process three
+  become: yes
+  shell: redis-cli \
+        -h {{ redisbasevm3ip_address }} \
+        -p {{ redisbasevm3_master_port }} \
+        CLUSTER NODES | grep {{ redisbasevm3ip_address }} | cut -d" " -f 1
+  register: redis_master_three
+
+# Setup cluster slaves
+# TODO create a loop to get those values
+- name: REDIS | Setup the cluster slave one
+  become: yes
+  shell: redis-trib.rb add-node \
+          --slave \
+          --master-id \
+          {{ redis_master_one.stdout }} \
+          {{ redisbasevm2ip_address }}:{{ redisbasevm2_slave_port }} \
+          {{ redisbasevm1ip_address }}:{{ redisbasevm2_slave_port }}
+  when: redis_cluster_running.stdout == "0"
+
+- name: REDIS | Setup the cluster slave two
+  become: yes
+  shell: redis-trib.rb add-node \
+          --slave \
+          --master-id \
+          {{ redis_master_two.stdout }} \
+          {{ redisbasevm3ip_address }}:{{ redisbasevm3_slave_port }} \
+          {{ redisbasevm2ip_address }}:{{ redisbasevm3_slave_port }}
+  when: redis_cluster_running.stdout == "0"
+
+- name: REDIS | Setup the cluster slave three
+  become: yes
+  shell: redis-trib.rb add-node \
+          --slave \
+          --master-id \
+          {{ redis_master_three.stdout }} \
+          {{ redisbasevm1ip_address }}:{{ redisbasevm1_slave_port }} \
+          {{ redisbasevm3ip_address }}:{{ redisbasevm1_slave_port }}
+  when: redis_cluster_running.stdout == "0"
+
+# Let's see the replication status after deployment
+- name: REDIS | Check replication status
+  shell: echo "Checking replication status"
+  notify: REDIS | Check replication
+  when: redis_cluster_running.stdout == "0"

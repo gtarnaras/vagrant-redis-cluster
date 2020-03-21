@@ -1,0 +1,19 @@
+---
+# This playbook sets up whole stack.
+ 
+- name: Configurations for redis setup
+  hosts: redisbasevm1, redisbasevm2
+  vars_files:
+    - ../vagrant.yml
+  remote_user: vagrant # Remote user
+  roles:
+    - setup_redis
+
+- name: Configurations for redis cluster setup
+  hosts: redisbasevm3
+  vars_files:
+    - ../vagrant.yml
+  remote_user: vagrant # Remote user
+  roles:
+    - setup_redis
+    - deploy_cluster

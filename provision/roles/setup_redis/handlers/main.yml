@@ -1,0 +1,15 @@
+---
+# ###################################################################
+#
+# This playbook contains common handlers/hooks that can be called in 
+# various environment setup tasks.
+#
+# ###################################################################
+
+# sudo systemctl disable redis-server . Proccess is being handled through supervisor
+- name: SETUP | disable redis-server from surviving reboot
+  become: yes
+  systemd:
+    name: redis-server
+    state: stopped
+    enabled: no

@@ -1,0 +1,47 @@
+---
+# ###################################################################
+#
+# This playbook contains the redis installation steps
+#
+# ###################################################################
+
+# apt install redis-server
+- name: REDIS | Install Redis server
+  become: yes
+  apt: 
+    name: redis-server
+    state: latest
+    update_cache: yes
+
+# Make sure redis has stopped before running as cluster
+- name: REDIS | Check if Redis is running
+  become: yes
+  systemd: 
+    name: redis-server
+    state: stopped
+  notify: SETUP | disable redis-server from surviving reboot
+
+# Copy cluster specific files to redis dir
+- name: REDIS | Copy redis cluster configuration files
+  become: yes
+  copy:
+    src: /var/tmp/clusternodeconfig/redis/
+    dest: /etc/redis/
+    force: yes
+  register: redis_conf
+
+# Copy cluster specific scripts to a $PATH dir
+- name: REDIS | Copy redis cluster setup scripts
+  become: yes
+  copy:
+    src: /var/tmp/rediscluster_scripts/
+    dest: /usr/local/bin
+    force: yes
+  register: redis_script_conf
+
+# Making sure the cluster config script is +x
+- name: REDIS | Changing perm of cluster setup script, adding "+x"
+  become: yes
+  file: 
+    dest: /usr/local/bin/redis-trib.rb
+    mode: a+x

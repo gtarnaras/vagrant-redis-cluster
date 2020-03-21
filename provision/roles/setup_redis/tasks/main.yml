@@ -1,0 +1,43 @@
+---
+# ###################################################################
+#
+# This is the template that orchestrates the setup and install 
+#
+# ###################################################################
+ 
+# sudo apt-get update
+- name: SETUP | Update apt packages
+  become: yes
+  apt:
+    update_cache: yes
+  tags:
+    - system
+
+# sudo apt-get autoclean
+- name: SETUP | Remove useless apt packages from the cache
+  become: yes
+  apt:
+    autoclean: yes
+  tags:
+    - system
+
+# Import redis tasks
+- name: SETUP | Import redis tasks
+  include_tasks: redis.yml
+  tags:
+    - redis
+
+# Import prerequisites tasks for cluster setup
+- name: SETUP | Import prerequisites tasks
+  become: yes
+  include_tasks: prereq.yml
+  tags:
+    - prerequisites
+
+# sudo apt-get autoremove
+- name: SETUP | Remove dependencies that are no longer required
+  become: yes
+  apt:
+    autoremove: yes
+  tags:
+    - system

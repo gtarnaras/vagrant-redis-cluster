@@ -1,0 +1,12 @@
+---
+# ###################################################################
+#
+# This is the template that orchestrates the setup and install 
+#
+# ###################################################################
+
+# Import redis tasks
+- name: SETUP | Import redis tasks
+  include_tasks: redis_cluster.yml
+  tags:
+    - redis_cluster

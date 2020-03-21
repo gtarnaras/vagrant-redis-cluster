@@ -1,0 +1,65 @@
+---
+# ###################################################################
+#
+# This playbook contains the jobs needed to setup the environment
+# Installs supervisord to handle the redis processes and reloads the 
+# redis proccesses if changes have been made.
+#
+# ###################################################################
+
+# apt install curl, supervisor, ruby
+- name: SETUP | install packages 
+  become: yes
+  apt: 
+    name: 
+    - curl
+    - supervisor
+    - ruby
+    state: latest
+    update_cache: yes
+
+# pip install pexpect
+- name: SETUP |  install pexpect
+  become: yes
+  pip:
+    name: pexpect
+
+# Installs redis gem
+- name: SETUP | redis
+  become: yes
+  gem:
+    name: redis
+    state: latest
+
+# Update supervisord base congiguration file
+- name: SUPERVISOR | Update base template
+  become: yes
+  copy:
+    src: /var/tmp/clusternodeconfig/general/supervisord.conf
+    dest: /etc/supervisor/supervisord.conf
+    force: yes
+  register: update_base
+
+# Configuration files for redis cluster
+- name: SUPERVISOR | Update redis-server cluster template
+  become: yes
+  copy:
+    src: /var/tmp/clusternodeconfig/supervisor/
+    dest: /etc/supervisor/conf.d/
+    force: yes
+  register: update_cluster_conf
+
+# Start supervisord
+- name: SUPERVISOR | Start service
+  become: yes
+  service:
+    name: supervisor
+    state: restarted
+  register: supervisor_started
+  when: update_base.changed or update_cluster_conf.changed
+
+# Reload supervisord
+- name: SUPERVISOR | Reload
+  become: yes
+  shell: supervisorctl reread ; supervisorctl update
+  when: supervisor_started.changed
